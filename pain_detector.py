@@ -113,7 +113,7 @@ class PainDetector:
         cv2.putText(image, '{} face/s detected'.format(num_faces), (7, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (70, 70, 70))
         cv2.putText(image, '{} face/s detected'.format(num_faces), (6, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color)
         for lmk in landmarks:
-            for lm in lmk.astype(np.int):
+            for lm in lmk.astype(int):
                 cv2.drawMarker(image, (lm[0] + offset[0], lm[1] + offset[1]), color, cv2.MARKER_CROSS, size)
 
         return image
@@ -136,7 +136,7 @@ class PainDetector:
             landmark = landmarks[0]
         image_face, lmks = self.similarity_transform(image, landmark)
         image_face = self.piecewise_affine_transform(image_face, lmks, mean_lmks)
-        landmark = mean_lmks.round().astype(np.int)
+        landmark = mean_lmks.round().astype(int)
         b_box = [landmark[:, 0].min(), landmark[:, 1].min(), landmark[:, 0].max(), landmark[:, 1].max()]
         image_face = self.crop_image(image_face, b_box)
         image_face = cv2.resize(image_face, (self.image_size, self.image_size))

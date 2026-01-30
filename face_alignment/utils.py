@@ -76,10 +76,10 @@ def transform(point, center, scale, resolution, invert=False):
 
     h = 200.0 * scale
     t = torch.eye(3)
-    t[0, 0] = resolution / h
-    t[1, 1] = resolution / h
-    t[0, 2] = resolution * (-center[0] / h + 0.5)
-    t[1, 2] = resolution * (-center[1] / h + 0.5)
+    t[0, 0] = float(resolution / h)
+    t[1, 1] = float(resolution / h)
+    t[0, 2] = float(resolution * (-center[0] / h + 0.5))
+    t[1, 2] = float(resolution * (-center[1] / h + 0.5))
 
     if invert:
         t = torch.inverse(t)
@@ -112,7 +112,7 @@ def crop(image, center, scale, resolution=256.0):
                            image.shape[2]], dtype=np.int32)
         newImg = np.zeros(newDim, dtype=np.uint8)
     else:
-        newDim = np.array([br[1] - ul[1], br[0] - ul[0]], dtype=np.int)
+        newDim = np.array([br[1] - ul[1], br[0] - ul[0]], dtype=np.int32)
         newImg = np.zeros(newDim, dtype=np.uint8)
     ht = image.shape[0]
     wd = image.shape[1]

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pain Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #f0fff4;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-text {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .btn-example {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .pain-score {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .pain-level {
+            font-size: 1.5rem;
+            color: #333;
+            text-align: center;
+            padding: 15px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            border: 1px solid #4CAF50;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background: #4CAF50;
+        }
+        
+        .status-offline {
+            background: #f44336;
+        }
+        
+        .flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .flex-center {
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩺 Pain Detection System</h1>
+            <p>Advanced Facial Expression Analysis for Pain Assessment</p>
+            <div style="margin-top: 15px;">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Checking connection...</span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <!-- API Status Section -->
+            <div class="section">
+                <h2>📊 System Status</h2>
+                <div id="systemStatus">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Checking system status...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Example Images Section -->
+            <div class="section">
+                <h2>🖼️ Test with Example Images</h2>
+                <p>Test the system using the built-in example images from the repository.</p>
+                <div class="flex flex-center">
+                    <button class="btn btn-example" onclick="analyzeExampleImages()">
+                        📋 Analyze Example Images
+                    </button>
+                </div>
+                <div id="exampleResult"></div>
+            </div>
+            
+            <!-- Reference Images Upload -->
+            <div class="section">
+                <h2>📁 Upload Reference Images (Neutral Expressions)</h2>
+                <p>Upload 1-3 images showing neutral (non-pain) facial expressions. These will be used as baseline for comparison.</p>
+                
+                <div class="upload-area" onclick="document.getElementById('referenceFiles').click()">
+                    <div class="upload-text">
+                        🖼️ Click here or drag and drop reference images<br>
+                        <small>(PNG, JPG supported)</small>
+                    </div>
+                    <input type="file" id="referenceFiles" class="file-input" multiple accept="image/*" onchange="handleReferenceUpload(event)">
+                </div>
+                
+                <div class="flex flex-center">
+                    <button class="btn" id="uploadRefBtn" onclick="uploadReferenceImages()" disabled>
+                        📤 Upload Reference Images
+                    </button>
+                </div>
+                
+                <div id="referenceResult"></div>
+                <div id="referencePreview" class="flex flex-center"></div>
+            </div>
+            
+            <!-- Target Image Upload -->
+            <div class="section">
+                <h2>🎯 Upload Target Image (Test for Pain)</h2>
+                <p>Upload an image to test for pain expression. Make sure reference images are uploaded first.</p>
+                
+                <div class="upload-area" onclick="document.getElementById('targetFile').click()">
+                    <div class="upload-text">
+                        🔍 Click here or drag and drop target image<br>
+                        <small>(PNG, JPG supported)</small>
+                    </div>
+                    <input type="file" id="targetFile" class="file-input" accept="image/*" onchange="handleTargetUpload(event)">
+                </div>
+                
+                <div class="flex flex-center">
+                    <button class="btn btn-success" id="predictBtn" onclick="predictPain()" disabled>
+                        🔬 Analyze Pain Level
+                    </button>
+                </div>
+                
+                <div id="targetResult"></div>
+                <div id="targetPreview" class="flex flex-center"></div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="section">
+                <h2>📈 Pain Analysis Results</h2>
+                <div id="painResults">
+                    <p style="text-align: center; color: #666;">Upload reference and target images to see pain analysis results.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://192.168.125.143:8080';
+        let referenceFiles = [];
+        let targetFile = null;
+        
+        // Check API status on page load
+        window.onload = function() {
+            checkAPIStatus();
+        };
+        
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    document.getElementById('statusIndicator').className = 'status-indicator status-online';
+                    document.getElementById('statusText').textContent = `Connected - Device: ${data.device}`;
+                    
+                    document.getElementById('systemStatus').innerHTML = `
+                        <div class="success">
+                            ✅ System is online and ready
+                            <br>Device: ${data.device}
+                            <br>Model loaded: ${data.model_loaded ? 'Yes' : 'No'}
+                        </div>
+                    `;
+                } else {
+                    throw new Error('System not healthy');
+                }
+            } catch (error) {
+                document.getElementById('statusIndicator').className = 'status-indicator status-offline';
+                document.getElementById('statusText').textContent = 'Connection failed';
+                
+                document.getElementById('systemStatus').innerHTML = `
+                    <div class="error">
+                        ❌ Unable to connect to backend server
+                        <br>Make sure the backend is running on port 8080
+                        <br>Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function handleReferenceUpload(event) {
+            const files = Array.from(event.target.files);
+            referenceFiles = files.slice(0, 3); // Maximum 3 reference images
+            
+            document.getElementById('uploadRefBtn').disabled = referenceFiles.length === 0;
+            
+            // Show preview
+            const preview = document.getElementById('referencePreview');
+            preview.innerHTML = '';
+            
+            referenceFiles.forEach((file, index) => {
+                const img = document.createElement('img');
+                img.className = 'image-preview';
+                img.src = URL.createObjectURL(file);
+                img.title = `Reference ${index + 1}: ${file.name}`;
+                preview.appendChild(img);
+            });
+        }
+        
+        function handleTargetUpload(event) {
+            targetFile = event.target.files[0];
+            document.getElementById('predictBtn').disabled = !targetFile;
+            
+            // Show preview
+            const preview = document.getElementById('targetPreview');
+            preview.innerHTML = '';
+            
+            if (targetFile) {
+                const img = document.createElement('img');
+                img.className = 'image-preview';
+                img.src = URL.createObjectURL(targetFile);
+                img.title = `Target: ${targetFile.name}`;
+                preview.appendChild(img);
+            }
+        }
+        
+        async function uploadReferenceImages() {
+            if (referenceFiles.length === 0) return;
+            
+            const formData = new FormData();
+            formData.append('ref1', referenceFiles[0]);
+            if (referenceFiles[1]) formData.append('ref2', referenceFiles[1]);
+            if (referenceFiles[2]) formData.append('ref3', referenceFiles[2]);
+            
+            document.getElementById('referenceResult').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Uploading reference images...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE}/upload-reference`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('referenceResult').innerHTML = `
+                        <div class="success">
+                            ✅ ${data.message}
+                            <br>References loaded: ${data.references_count}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.detail || 'Upload failed');
+                }
+            } catch (error) {
+                document.getElementById('referenceResult').innerHTML = `
+                    <div class="error">
+                        ❌ Error uploading reference images: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function predictPain() {
+            if (!targetFile) return;
+            
+            const formData = new FormData();
+            formData.append('target', targetFile);
+            
+            document.getElementById('targetResult').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing pain level...</p>
+                </div>
+            `;
+            
+            document.getElementById('painResults').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Processing facial expressions...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE}/predict-pain`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('targetResult').innerHTML = `
+                        <div class="success">
+                            ✅ Pain analysis completed successfully!
+                        </div>
+                    `;
+                    
+                    // Determine color based on pain level
+                    let scoreColor = '#4CAF50'; // Green for low pain
+                    if (data.pain_score >= 4) scoreColor = '#FF9800'; // Orange for moderate
+                    if (data.pain_score >= 6) scoreColor = '#f44336'; // Red for severe
+                    
+                    document.getElementById('painResults').innerHTML = `
+                        <div class="result-card">
+                            <div class="pain-score" style="color: ${scoreColor}">
+                                ${data.pain_score.toFixed(3)}
+                            </div>
+                            <div class="pain-level">
+                                ${data.pain_level}
+                            </div>
+                            <div style="text-align: center; color: #666; margin-top: 15px;">
+                                <strong>PSPI Scale:</strong><br>
+                                ${data.pspi_scale}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.detail || 'Prediction failed');
+                }
+            } catch (error) {
+                document.getElementById('targetResult').innerHTML = `
+                    <div class="error">
+                        ❌ Error predicting pain: ${error.message}
+                    </div>
+                `;
+                
+                document.getElementById('painResults').innerHTML = `
+                    <div class="error">
+                        Failed to analyze pain level. Please try again.
+                    </div>
+                `;
+            }
+        }
+        
+        async function analyzeExampleImages() {
+            document.getElementById('exampleResult').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing example images...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE}/analyze-example-images`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Determine color based on pain level
+                    let scoreColor = '#4CAF50'; // Green for low pain
+                    if (data.pain_score >= 4) scoreColor = '#FF9800'; // Orange for moderate
+                    if (data.pain_score >= 6) scoreColor = '#f44336'; // Red for severe
+                    
+                    document.getElementById('exampleResult').innerHTML = `
+                        <div class="result-card">
+                            <h3 style="text-align: center; margin-bottom: 20px;">Example Images Analysis</h3>
+                            <div style="text-align: center; margin-bottom: 15px;">
+                                <strong>Reference:</strong> ${data.reference_image}<br>
+                                <strong>Target:</strong> ${data.target_image}
+                            </div>
+                            <div class="pain-score" style="color: ${scoreColor}">
+                                ${data.pain_score.toFixed(3)}
+                            </div>
+                            <div class="pain-level">
+                                ${data.pain_level}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.detail || 'Analysis failed');
+                }
+            } catch (error) {
+                document.getElementById('exampleResult').innerHTML = `
+                    <div class="error">
+                        ❌ Error analyzing example images: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Drag and drop functionality
+        document.querySelectorAll('.upload-area').forEach(area => {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                area.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                area.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                area.addEventListener(eventName, unhighlight, false);
+            });
+            
+            area.addEventListener('drop', handleDrop, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function highlight(e) {
+            e.target.closest('.upload-area').classList.add('dragover');
+        }
+        
+        function unhighlight(e) {
+            e.target.closest('.upload-area').classList.remove('dragover');
+        }
+        
+        function handleDrop(e) {
+            const files = e.dataTransfer.files;
+            const area = e.target.closest('.upload-area');
+            
+            if (area.querySelector('#referenceFiles')) {
+                // Reference files area
+                document.getElementById('referenceFiles').files = files;
+                handleReferenceUpload({target: {files: files}});
+            } else if (area.querySelector('#targetFile')) {
+                // Target file area
+                if (files.length > 0) {
+                    document.getElementById('targetFile').files = files;
+                    handleTargetUpload({target: {files: files}});
+                }
+            }
+        }
+    </script>
+</body>
+</html>
