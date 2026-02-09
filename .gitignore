@@ -35,3 +35,6 @@ backend.log
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Office lock files
+.~lock.*

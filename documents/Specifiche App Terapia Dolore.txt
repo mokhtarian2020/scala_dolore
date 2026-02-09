@@ -1,0 +1,180 @@
+﻿1 Requisiti Funzionali
+1.1 Use Case FN-01: Registrazione e Onboarding del Paziente
+Questo caso d'uso descrive come un paziente viene invitato e abilitato all'uso della Mobile App.
+Campo	Descrizione
+ID	REQ-FN-01
+Nome	Registrazione e Onboarding del Paziente
+Attori	Paziente (Primario), Medico, CatoMaior, Sistema TS.
+Tipologia Requisito	Funzionale
+Descrizione Requisito	Il sistema deve permettere l'attivazione dell'account utente previa validazione della coppia Codice Fiscale e numero Tessera Sanitaria (TEAM):
+    1. Il medico inserisce la mail del paziente nel sistema CatoMaior 
+    2. CatoMaior invia i dati dell'invito (Codice Fiscale + Numero Tessera Sanitaria/TEAM) al sistema di Back-End della mobile app
+    3. Il Back-End della mobile app interroga il Sistema TS per verificare la validità della coppia CF e TEAM
+    4. Il Sistema TS restituisce un esito positivo (ACK)
+    5. Il sistema di Back End genera un Codice di Accesso univoco e lo invia al paziente via mail
+    6. Il paziente scarica la Mobile App e inserisce il codice ricevuto (o scansiona il QR Code generato dal codice) per completare la registrazione
+    7. La Mobile App comunica i dati di registrazione al Back End
+    8. Il Back End dell’app notifica a CatoMaior l'aggiornamento dello stato del paziente (da "invitato" a "registrato")
+Tipologia di Intervento	Sviluppo Software / Integrazione API REST 
+Requisiti di Relazione	Interfaccia Sistema TS, Database CatoMaior, Modulo Invio Mail
+Vincoli	Il paziente deve essere presente nell’anagrafica di CatoMaior.
+Criteri di Validazione	Ricezione del codice di accesso su mail del paziente e aggiornamento dello stato "Registrato" su CatoMaior a seguito del primo login.
+
+
+
+1.2 Use Case FN-02: Ricezione Notifiche e Comunicazioni Multicanale
+Basato sul Notification Controller, descrive come il sistema comunica con l'utente.
+Campo	Descrizione
+ID	REQ-FN-02
+Nome	Ricezione Notifiche e Comunicazioni Multicanale
+Attori	Back End dell’App, Mobile App, Provider esterni (SMTP, SMS, Push Notification).
+Tipologia Requisito	Funzionale
+Descrizione Requisito	Il sistema deve gestire l'invio automatizzato di notifiche all'utente in risposta a eventi generati dai sistemi clinici o documentali:
+    1. Il Back-End riceve un evento di sistema (es. notifica di nuovo referto disponibile nel DMS).
+    2. Il Notification Gateway interno al Back-End smista la richiesta sui canali previsti:
+        a. Push: Inviata tramite il Notification Flow alla Mobile App.
+        b. SMS/Mail: Inviata tramite SMS Flow o e-mail Flow verso i provider esterni.
+    3. In caso di errore di invio, il sistema deve gestire il messaggio tramite una coda di Failed Messages e un Queue Event Consumer per il reinvio automatico.
+Tipologia di Intervento	Sviluppo Software / Configurazione Middleware 
+Requisiti di Relazione	DMS, Provider SMTP (Email), Provider SMS, Servizi Push (FCM/APNs), Mobile App.
+Vincoli	Le preferenze di ricezione dell'utente devono essere rispettate; il sistema deve garantire la gestione delle code per evitare la perdita di comunicazioni critiche.
+Criteri di Validazione	Ricezione effettiva della notifica push sul dispositivo mobile e/o della mail/SMS a seguito del caricamento di un documento di test nel DMS. Verifica del corretto spostamento in coda dei messaggi in caso di simulazione di errore (es. provider offline).
+
+
+
+1.3 Use Case FN-03: Ricezione e Consultazione Referti Medici
+Descrive come il paziente viene informato della disponibilità di un nuovo documento clinico.
+Campo	Descrizione
+ID	REQ-FN-03
+Nome	Ricezione e Consultazione Referti Medici
+Attori	Paziente, Sistema di Back End, Middleware di integrazione verso il DMS, Repository Documentale (DMS).
+Tipologia Requisito	Funzionale
+Descrizione Requisito	Il sistema deve automatizzare il flusso di notifica e disponibilità del referto non appena questo viene prodotto dal sistema clinico:
+    1. Il sistema clinico (CatoMaior) invia il referto al Middleware.
+    2. Il Middleware deposita il file nel DMS e attende la conferma di avvenuta archiviazione (ACK).
+    3. Il Middleware interroga il Back-End per verificare lo stato di registrazione del paziente sulla Mobile App.
+    4. Se il paziente è registrato, il Middleware inoltra i dati/documento al Back-End dell'app.
+    5. Il Back-End, tramite il Notification Controller, smista l'evento al Notification Gateway.
+    6. Viene generata una notifica push (con fallback SMS/Email) verso la Mobile App per avvisare l'utente.
+    7. L'utente, cliccando sulla notifica, visualizza il documento tramite la Mobile App.
+Tipologia di Intervento	Sviluppo Software / Integrazione Sistemi Eterogenei
+Requisiti di Relazione	CatoMaior, Middleware, DMS, Back-End, Mobile App.
+Vincoli	L'invio della notifica è subordinato all'esito positivo (ACK) dell'archiviazione nel DMS.
+Criteri di Validazione	Caricamento di un referto di test su CatoMaior e verifica della comparsa della notifica sulla Mobile App entro i tempi tecnici prestabiliti. Visualizzazione corretta del PDF/CDA2 all'interno dell'App.
+
+
+1.4 Use Case FN-04: Gestione Subscription
+Questo caso d'uso riguarda l'associazione tecnica tra l'account dell'utente e il suo smartphone per garantire la sicurezza delle notifiche.
+Campo	Descrizione
+ID	REQ-FN-04
+Nome	Gestione Subscription e Associazione Dispositivo
+Attori	Paziente (Mobile App), Modulo di notifica e Back-End della mobile app.
+Tipologia Requisito	Funzionale / Tecnico
+Descrizione Requisito	Il sistema deve garantire il corretto instradamento delle notifiche push associando l'identità dell'utente al token univoco del dispositivo mobile:
+    1. All'accesso (login), la Mobile App invoca il Subscription Controller del modulo di notifica sul Back-End per registrare il token del dispositivo (subscribe).
+    2. Il modulo di notifica aggiorna il Device Repository associando l'ID utente al dispositivo specifico.
+    3. Il sistema esegue periodicamente un processo batch denominato Clear Expired Device per rimuovere le associazioni obsolete o i token non più validi per garantire la sicurezza del sistema.
+Tipologia di Intervento	Sviluppo Software / Gestione Database Dispositivi
+Requisiti di Relazione	Mobile App, Back-End (Subscription Controller), Device Repository.
+Vincoli	Un utente può avere più dispositivi associati, ma ogni associazione deve essere validata da un token di sessione attivo.
+Criteri di Validazione	Verifica della corretta scrittura del token nel database a seguito del login. Verifica della ricezione di una notifica di test solo sui dispositivi attualmente "sottoscritti" e validi.
+
+
+1.5 Use Case FN-05: Consultazione e Recupero Documenti
+Permette all'utente di accedere alla propria storia clinica archiviata nel repository.
+Campo	Descrizione
+ID	REQ-FN-05
+Nome	Consultazione e Recupero Documenti
+Attori	Paziente (Mobile App), Back-End della mobile App.
+Tipologia Requisito	Funzionale
+Descrizione Requisito	Il sistema deve consentire all'utente di navigare nel proprio storico clinico e scaricare i documenti originali:
+    1. L'utente richiede tramite la Mobile App il recupero della lista dei propri referti.
+    2. Il Back-End interroga il proprio database (dove sono sincronizzati i metadati) e restituisce all'App l'elenco dei documenti disponibili.
+    3. L'utente seleziona uno specifico referto dalla lista.
+    4. Il sistema (tramite il Back-End o il Middleware) recupera il file originale dal DMS e lo rende visualizzabile o scaricabile direttamente sulla Mobile App.
+Tipologia di Intervento	Sviluppo Software / API Documentali
+Requisiti di Relazione	Mobile App, Back-End, DMS (Repository Documentale).
+Vincoli	L'accesso è consentito solo ai documenti per i quali l'utente è proprietario o ha ricevuto delega; i file scaricati devono essere gestiti in modo sicuro nella cache dell'App.
+Criteri di Validazione	Visualizzazione corretta della lista referti entro 3 secondi dalla richiesta. Apertura e corretta renderizzazione del file PDF/CDA2 recuperato dal DMS.
+
+1.6 Use Case FN-06: Caricamento Immagine di Riferimento (Modulo AI)
+Descrive il primo utilizzo della funzionalità di monitoraggio tramite intelligenza artificiale.
+Campo	Descrizione
+ID	REQ-FN-06
+Nome	Caricamento Immagine di Riferimento (Modulo AI)
+Attori	Paziente (Mobile App), Modulo AI, Middleware, DMS.
+Tipologia Requisito	Funzionale / Integrazione AI
+Descrizione Requisito	Il sistema deve permettere l'acquisizione e l'archiviazione sicura di un'immagine di riferimento (baseline) per il monitoraggio clinico tramite AI:
+    1. La Mobile App presenta un disclaimer obbligatorio sull'uso della foto personale per fini valutativi.
+    2. L'utente scatta e carica una foto con espressione neutra.
+    3. L'immagine viene elaborata dal Modulo AI per verificarne l'idoneità tecnica e inviata al Middleware.
+    4. Il Middleware inoltra l'immagine al DMS.
+    5. Il DMS riceve l'immagine, esegue la cifratura dei dati e la salva nel repository documentale associandola al profilo del paziente.
+Tipologia di Intervento	Sviluppo Software / Integrazione Modulo AI / Sicurezza Dati
+Requisiti di Relazione	Mobile App, Modulo AI, Middleware, DMS.
+Vincoli	L'immagine deve essere cifrata prima della persistenza fisica sul disco; l'utente deve accettare esplicitamente il disclaimer prima di attivare la fotocamera.
+Criteri di Validazione	Presenza del disclaimer all'apertura del modulo. Verifica dell'avvenuta archiviazione dell'immagine cifrata nel DMS a seguito del caricamento.
+
+1.7 Use Case FN-07: Acquisizione Baseline e Valutazione AI (SCALA)
+Questi casi d'uso riguardano le funzionalità avanzate di monitoraggio tramite intelligenza artificiale.
+Campo	Descrizione
+ID	REQ-FN-07
+Nome	Acquisizione Baseline e Valutazione AI (SCALA)
+Attori	Paziente (Mobile App), Modulo AI, Middleware, DMS, Back-End.
+Tipologia Requisito	Funzionale / Elaborazione Dati AI
+Descrizione Requisito	Il sistema deve consentire la valutazione clinica tramite confronto tra l'immagine di baseline e l'espressione attuale del paziente:
+    1. L'utente carica tramite la Mobile App una foto che ritrae un'espressione di dolore.
+    2. Il Modulo AI richiede l'immagine baseline precedentemente salvata al Middleware, che la recupera dal DMS.
+    3. Il Modulo AI esegue la comparazione biometrica/morfologica tra le due foto, genera un documento strutturato di "Score" (risultato della valutazione) e lo invia al Middleware.
+    4. Il Middleware archivia lo score nel DMS e, contestualmente, invia il dato al Back-End dell’App per generare la notifica di esito disponibile per il paziente.
+Tipologia di Intervento	Sviluppo Software / Orchestrazione flussi AI / Notifiche real-time
+Requisiti di Relazione	REQ-FN-06 (Baseline), Middleware, DMS, Back-End, Mobile App.
+Vincoli	L'operazione è possibile solo se è già presente una foto baseline valida nel DMS (Precondizione UC-FN-06).
+Criteri di Validazione	Generazione corretta del documento di Score a seguito del caricamento della seconda foto e ricezione della notifica push sulla Mobile App del paziente con il risultato della valutazione.
+
+
+2 Requisiti Non Funzionali
+2.1 REQ-NF-01: Sicurezza e Privacy
+Campo	Descrizione
+ID	REQ-NF-01
+Nome	Cifratura dei Dati e Conformità GDPR
+Tipologia Requisito	Non Funzionale - Sicurezza
+Descrizione Requisito	Tutti i dati sensibili (immagini AI, referti) devono essere cifrati "at rest" (nel DMS) e "in transit" (tramite protocolli HTTPS/TLS 1.3 tra Mobile App, Back-End e Middleware). Le chiavi di cifratura devono essere gestite in modo granulare per garantire che solo l'avente diritto possa decrittare il dato clinico.
+Tipologia di Intervento	Configurazione Sistemi di Cifratura / Implementazione certificati SSL/TLS
+Requisiti di Relazione	DMS, Middleware, Modulo AI.
+Vincoli	Rispetto rigoroso del Regolamento UE 2016/679 (GDPR) e delle linee guida AGID per la sicurezza delle PA.
+Criteri di Validazione	Superamento di un Penetration Test e verifica dell'illeggibilità dei file estratti direttamente dai dischi del DMS senza chiavi autorizzate.
+
+2.2 REQ-NF-02: Prestazioni e Scalabilità
+Campo	Descrizione
+ID	REQ-NF-02
+Nome	Tempi di Risposta e Gestione Carichi AI
+Tipologia Requisito	Non Funzionale - Efficienza
+Descrizione Requisito	Il sistema deve garantire un tempo di risposta per il recupero della lista referti (REQ-FN-05) adeguata nel 95% dei casi. L'elaborazione dell'immagine da parte del Modulo AI e la generazione dello score (REQ-FN-07) non deve superare i 20 secondi.
+Tipologia di Intervento	Ottimizzazione Query Database / Scaling risorse computazionali AI
+Requisiti di Relazione	Back-End, Middleware, Modulo AI.
+Vincoli	Connessione minima garantita lato utente (3G/4G).
+Criteri di Validazione	Test di carico con 100 richieste simultanee di valutazione AI senza degradazione delle performance sopra la soglia stabilita.
+
+2.3 REQ-NF-03: Disponibilità e Resilienza
+Campo	Descrizione
+ID	REQ-NF-03
+Nome	Continuità del Servizio e Gestione Code
+Tipologia Requisito	Non Funzionale - Affidabilità
+Descrizione Requisito	L'infrastruttura deve garantire una disponibilità del servizio (Uptime) del 99.9%. In caso di indisponibilità temporanea del Back-End o del DMS, il Middleware deve essere in grado di mettere in coda i referti ricevuti da CatoMaior senza perdita di dati, riprendendo l'invio automaticamente al ripristino.
+Tipologia di Intervento	Configurazione High Availability (HA) / Sistemi di Queueing (es. RabbitMQ/Kafka)
+Requisiti di Relazione	Middleware, DMS, Back-End.
+Vincoli	Finestre di manutenzione programmata comunicate con 48h di anticipo e limitate a orari notturni.
+Criteri di Validazione	Simulazione di spegnimento del Back-End durante l'invio di un referto e verifica del corretto recupero dalla coda dei Failed Messages.
+
+2.4 REQ-NF-04: Usabilità Mobile
+Campo	Descrizione
+ID	REQ-NF-04
+Nome	Accessibilità e User Experience (UX)
+Tipologia Requisito	Non Funzionale - Usabilità
+Descrizione Requisito	La Mobile App deve seguire i principi di accessibilità (WCAG 2.1) per permettere l'uso a pazienti con diverse abilità. L'interfaccia di scatto foto (Modulo AI) deve guidare l'utente con feedback visivi in tempo reale (es. "avvicinati", "luce insufficiente") per minimizzare gli errori di acquisizione.
+Tipologia di Intervento	Design UI/UX / Sviluppo Frontend Mobile
+Requisiti di Relazione	Mobile App, Modulo AI.
+Vincoli	Compatibilità con le ultime 3 versioni major di Android e iOS.
+Criteri di Validazione	Test di usabilità con un campione di utenti della fascia d'età target (>65 anni) con tasso di successo nel caricamento baseline superiore all'80% al primo tentativo.
+
